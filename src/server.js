@@ -3,18 +3,17 @@
 import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
-import { getAllStudents, getStudentById } from './services/students.js';
+import { getAllcontacts, getContactById } from './services/contacts.js';
 
 import { getEnvVar } from './utils/getEnvVar.js';
 
 const PORT = Number(getEnvVar('PORT', '3000'));
 
-export const startServer = () => {
+export const setupServer = () => {
   const app = express();
 
   app.use(express.json());
   app.use(cors());
-
   app.use(
     pino({
       transport: {
@@ -23,29 +22,33 @@ export const startServer = () => {
     }),
   );
 
-  app.get('/students', async (req, res) => {
-    const students = await getAllStudents();
+  app.get('/contacts', async (req, res) => {
+    const contacts = await getAllcontacts();
 
     res.status(200).json({
-      data: students,
+      status: 200,
+      message: 'Successfully found contacts!',
+      data: contacts,
     });
   });
 
-  app.get('/students/:studentId', async (req, res, next) => {
-    const { studentId } = req.params;
-    const student = await getStudentById(studentId);
+  app.get('/contacts/:contactId', async (req, res, next) => {
+    const { contactId } = req.params;
+    const contact = await getContactById(contactId);
 
     // Відповідь, якщо контакт не знайдено
-    if (!student) {
+    if (!contact) {
       res.status(404).json({
-        message: 'Student not found',
+        message: 'Contact not found',
       });
       return;
     }
 
     // Відповідь, якщо контакт знайдено
     res.status(200).json({
-      data: student,
+      status: 200,
+      message: `Successfully found contact with id ${contactId}!`,
+      data: contact,
     });
   });
 
