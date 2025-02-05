@@ -1,5 +1,4 @@
 import Joi from 'joi';
-import mongoose from 'mongoose';
 
 export const createContactSchema = Joi.object({
   name: Joi.string().min(3).max(20).required(), // Ім'я має бути рядком від 3 до 20 символів
@@ -11,12 +10,6 @@ export const createContactSchema = Joi.object({
   contactType: Joi.string()
     .valid('work', 'home', 'personal')
     .default('personal'), // Тільки вказані значення
-  parentId: Joi.string().custom((value, helpers) => {
-    if (!mongoose.Types.ObjectId.isValid(value)) {
-      return helpers.error('any.invalid');
-    }
-    return value;
-  }, 'ObjectId validation'),
 });
 
 export const updateContactSchema = Joi.object({
