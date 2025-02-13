@@ -42,21 +42,22 @@ export const deleteContact = async (contactId, userId) => {
   return await ContactsCollection.findOneAndDelete({ _id: contactId, userId });
 };
 
-export const updateContact = async (contactsId, payload, options = {}) => {
-  const rawResult = await ContactsCollection.findOneAndUpdate(
-    { _id: contactsId, userId: options.userId },
-    payload,
-    {
-      new: true,
-      includeResultMetadata: true,
-      ...options,
-    },
+export const updateContact = async (contactId, payload, options = {}) => {
+  if (!options.userId) {
+    throw new Error('userId is required for updating contact');
+  }
+
+  const sanitizedPayload = JSON.parse(JSON.stringify(payload));
+
+  const updatedContact = await ContactsCollection.findOneAndUpdate(
+    { _id: contactId, userId: options.userId },
+    { $set: sanitizedPayload },
+    { new: true },
   );
 
-  if (!rawResult || !rawResult.value) return null;
+  if (!updatedContact) {
+    throw new Error('Contact not found or update failed');
+  }
 
-  return {
-    contact: rawResult.value,
-    isNew: Boolean(rawResult?.lastErrorObject?.upserted),
-  };
+  return updatedContact;
 };

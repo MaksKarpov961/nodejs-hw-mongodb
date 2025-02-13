@@ -1,5 +1,8 @@
 // src/controllers/contacts.js
 import mongoose from 'mongoose';
+
+import { ContactsCollection } from '../db/models/contacts.js';
+
 import {
   createContact,
   deleteContact,
@@ -108,7 +111,7 @@ export const upsetrtContactController = async (req, res, next) => {
   const { contactId } = req.params;
   const userId = req.user._id;
 
-  const result = await updateContact(contactId, req.body, userId);
+  const result = await updateContact(contactId, req.body, { userId });
 
   if (!result) {
     next(createHttpError(404, 'Contact not found'));
@@ -120,7 +123,7 @@ export const upsetrtContactController = async (req, res, next) => {
   res.status(status).json({
     status,
     message: 'Successfully updated contact!',
-    data: result.contact,
+    data: result,
   });
 };
 
@@ -131,25 +134,35 @@ export const patchContactController = async (req, res, next) => {
   let photoUrl = null;
 
   if (photo) {
-    if (getEnvVar('ENABLE_CLOUDINARY') === 'true') {
-      photoUrl = await saveFileToCloudinary(photo);
-    } else {
-      photoUrl = await saveFileToUploadDir(photo);
+    try {
+      if (getEnvVar('ENABLE_CLOUDINARY') === 'true') {
+        photoUrl = await saveFileToCloudinary(photo);
+      } else {
+        photoUrl = await saveFileToUploadDir(photo);
+      }
+    } catch (error) {
+      return next(createHttpError(500, 'Error uploading photo'));
     }
   }
-  const result = await updateContact(contactId, {
-    ...req.body,
+
+  const existingContact = await ContactsCollection.findOne({
+    _id: contactId,
     userId,
-    photo: photoUrl,
   });
 
-  if (!result || !result.contact) {
+  if (!existingContact) {
     return next(createHttpError(404, 'Contact not found or access denied'));
   }
+
+  const updatedContact = await updateContact(
+    contactId,
+    { ...req.body, photo: photoUrl },
+    { userId },
+  );
 
   res.json({
     status: 200,
     message: 'Successfully updated contact!',
-    data: result.contact,
+    data: updatedContact,
   });
 };
