@@ -47,7 +47,6 @@ router.delete(
 
 router.put(
   '/:contactId',
-  upload.single('photo'),
   isValidId,
   validateBody(updateContactSchema),
   ctrlWrapper(upsetrtContactController),
