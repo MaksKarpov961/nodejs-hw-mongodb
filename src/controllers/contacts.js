@@ -17,7 +17,7 @@ import { getEnvVar } from '../utils/getEnvVar.js';
 export const getContactsController = async (req, res) => {
   const { page, perPage } = parsePaginationParams(req.query);
   const { sortOrder, sortBy } = parseSortParams(req.query);
-  const userId = req.user._id; // Отримуємо ID поточного користувача
+  const userId = req.user._id;
 
   const contacts = await getAllcontacts({
     userId,
@@ -55,9 +55,33 @@ export const getContactsByIdController = async (req, res) => {
   });
 };
 
-export const createContactController = async (req, res) => {
+export const createContactController = async (req, res, next) => {
   const userId = req.user._id;
-  const contact = await createContact({ ...req.body, userId });
+  const photo = req.file;
+
+  let photoUrl = null;
+
+  if (photo) {
+    try {
+      if (getEnvVar('ENABLE_CLOUDINARY') === 'true') {
+        photoUrl = await saveFileToCloudinary(photo);
+      } else {
+        photoUrl = await saveFileToUploadDir(photo);
+      }
+    } catch (error) {
+      return next(createHttpError(500, 'Error uploading photo'));
+    }
+  }
+
+  const contact = await createContact({
+    ...req.body,
+    userId,
+    photo: photoUrl,
+  });
+
+  if (!contact) {
+    return next(createHttpError(400, 'Failed to create contact'));
+  }
 
   res.status(201).json({
     status: 201,
